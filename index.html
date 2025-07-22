@@ -19,13 +19,6 @@
   </style>
 </head>
 <body class="relative">
-  <!-- Register Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(console.error);
-    }
-  </script>
-
   <div class="relative z-10 flex flex-col items-center min-h-screen p-6 space-y-6">
     <!-- Controls -->
     <div class="flex space-x-4">
@@ -103,27 +96,23 @@
     const baseSelect = document.getElementById('baseCurrency');
     const amountInput = document.getElementById('amount');
     const API_URL = 'https://api.exchangerate.host/latest';
-    let rates = {};
 
-    // Setup draggability and animation
+    // Draggable cards
     new Sortable(container, { animation: 150, ghostClass: 'opacity-50', onEnd: () => { syncBaseOptions(); updateConversions(); } });
 
-        // Populate dropdown
+    // Populate dropdown
     function syncBaseOptions() {
       baseSelect.innerHTML = '';
       Array.from(container.children).forEach((card, i) => {
-        const ccy = card.dataset.currency;
         const opt = document.createElement('option');
-        opt.value = ccy;
-        opt.textContent = ccy;
+        opt.value = card.dataset.currency;
+        opt.textContent = card.dataset.currency;
         if (i === 0) opt.selected = true;
         baseSelect.appendChild(opt);
       });
     }
-    }
-    }
 
-    // Update clocks & dates
+    // Clock updater
     function updateClocks() {
       container.querySelectorAll('.card').forEach(card => {
         const tz = card.dataset.timezone;
@@ -134,36 +123,27 @@
     }
     setInterval(updateClocks, 1000);
 
-    // Fetch rates
-    async function fetchRates(base) {
-      const symbols = Array.from(container.children).map(c => c.dataset.currency).join(',');
-      const resp = await fetch(`${API_URL}?base=${base}&symbols=${symbols}`);
-      const data = await resp.json();
-      rates = data.rates || {};
-    }
-
-    // Update conversions
+    // Fetch & convert
     async function updateConversions() {
       const base = baseSelect.value;
       const amt = parseFloat(amountInput.value);
+      const symbols = Array.from(container.children).map(c => c.dataset.currency).join(',');
       if (isNaN(amt)) {
-        container.querySelectorAll('.conversion').forEach(el => el.textContent = '—'); return;
+        container.querySelectorAll('.conversion').forEach(el => el.textContent = '—');
+      } else {
+        const resp = await fetch(`${API_URL}?base=${base}&symbols=${symbols}`);
+        const data = await resp.json();
+        container.querySelectorAll('.card').forEach(card => {
+          const rate = data.rates[card.dataset.currency];
+          card.querySelector('.conversion').textContent = rate != null ? `${card.dataset.currency}: ${(amt * rate).toFixed(2)}` : '—';
+        });
       }
-      await fetchRates(base);
-      container.querySelectorAll('.card').forEach(card => {
-        const tgt = card.dataset.currency;
-        const rate = rates[tgt];
-        card.querySelector('.conversion').textContent = rate != null ? `${tgt}: ${(amt * rate).toFixed(2)}` : '—';
-      });
     }
 
-    // Listeners
+    // Listeners & init
     baseSelect.addEventListener('change', updateConversions);
     amountInput.addEventListener('input', updateConversions);
-
-    // Initialize everything
     syncBaseOptions(); updateClocks(); updateConversions();
-
   </script>
 </body>
 </html>
