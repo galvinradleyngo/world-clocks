@@ -86,9 +86,9 @@
   const baseSelect  = document.getElementById('baseCurrency');
   const amountInput = document.getElementById('amount');
   
-  // UPDATED: API Key and URL
+  // The better API endpoint and key
   const API_KEY     = '8238d507f4faa49ace90e254ffa98e49';
-  const API_URL     = 'https://api.exchangeratesapi.io/v1/latest';
+  const API_URL     = 'https://api.exchangerate.host/live';
 
   // 1) Enable drag-and-drop with animation
   new Sortable(container, {
@@ -105,7 +105,6 @@
     baseSelect.innerHTML = '';
     const seenCurrencies = new Set();
     const allCards = Array.from(container.children);
-
     allCards.forEach(card => {
       const ccy = card.dataset.currency;
       if (!seenCurrencies.has(ccy)) {
@@ -116,7 +115,6 @@
         seenCurrencies.add(ccy);
       }
     });
-    
     if (allCards.length > 0) {
       baseSelect.value = allCards[0].dataset.currency;
     }
@@ -129,14 +127,13 @@
       const tz = card.dataset.timezone;
       const timeOptions = { timeZone: tz, hour12: true, hour: '2-digit', minute:'2-digit' };
       const dateOptions = { timeZone: tz, year: 'numeric', month: 'long', day: 'numeric' };
-
       card.querySelector('.clock').textContent = new Intl.DateTimeFormat('en-US', timeOptions).format(now);
       card.querySelector('.date').textContent = new Intl.DateTimeFormat('en-US', dateOptions).format(now);
     });
   }
   setInterval(updateClocks, 1000);
 
-  // 4) Fetch rates and update conversions (UPDATED FOR API KEY AND BASE CURRENCY LIMITATION)
+  // 4) Fetch rates and update conversions (SIMPLIFIED LOGIC)
   async function updateConversions() {
     const selectedBase = baseSelect.value;
     const amt  = parseFloat(amountInput.value);
@@ -146,28 +143,27 @@
     }
 
     try {
-      // Always fetch with EUR as base due to API free plan limitations
-      const res  = await fetch(`${API_URL}?access_key=${API_KEY}&base=EUR`);
-      if (!res.ok) {
-          throw new Error(`Network error: ${res.statusText}`);
-      }
+      const res  = await fetch(`${API_URL}?access_key=${API_KEY}&source=${selectedBase}&format=1`);
+      if (!res.ok) throw new Error(`Network error: ${res.statusText}`);
+      
       const data = await res.json();
-      if (!data.success) {
-          throw new Error(data.error?.info || 'Unknown API error');
-      }
-      const rates = data.rates;
-      rates['EUR'] = 1; // Add EUR to the rates for calculation
+      if (!data.success) throw new Error(data.error?.info || 'Unknown API error');
 
-      const baseRate = rates[selectedBase];
-      if (!baseRate) throw new Error(`Rate for ${selectedBase} not found.`);
+      const quotes = data.quotes;
 
       container.querySelectorAll('.card').forEach(card => {
         const tgt = card.dataset.currency;
-        const targetRate = rates[tgt];
+        
+        if (tgt === selectedBase) {
+          card.querySelector('.conversion').textContent = amt.toLocaleString('en-US', { style: 'currency', currency: tgt });
+          return;
+        }
 
-        if (targetRate) {
-          // Convert from selectedBase to EUR, then from EUR to target
-          const convertedAmount = (amt / baseRate) * targetRate;
+        const quoteKey = selectedBase + tgt; // e.g., "USDPHP"
+        const rate = quotes[quoteKey];
+
+        if (rate) {
+          const convertedAmount = amt * rate;
           card.querySelector('.conversion').textContent = convertedAmount.toLocaleString('en-US', { 
             style: 'currency', currency: tgt, minimumFractionDigits: 2, maximumFractionDigits: 2 
           });
