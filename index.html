@@ -34,7 +34,7 @@
     </div>
     <div id="cardsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
       <!-- Manila -->
-      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Asia/Manila" data-currency="PHP">
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" data-timezone="Asia/Manila" data-currency="PHP">
         <div class="flex items-center space-x-2 mb-4">
           <img src="https://flagcdn.com/w40/ph.png" alt="PH flag">
           <span class="text-lg font-semibold">Manila</span>
@@ -44,7 +44,7 @@
         <div class="conversion mt-2 text-sm font-medium text-green-500">—</div>
       </div>
       <!-- Dubai -->
-      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Asia/Dubai" data-currency="AED">
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" data-timezone="Asia/Dubai" data-currency="AED">
         <div class="flex items-center space-x-2 mb-4">
           <img src="https://flagcdn.com/w40/ae.png" alt="AE flag">
           <span class="text-lg font-semibold">Dubai</span>
@@ -54,7 +54,7 @@
         <div class="conversion mt-2 text-sm font-medium text-green-500">—</div>
       </div>
       <!-- Vienna -->
-      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Europe/Vienna" data-currency="EUR">
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" data-timezone="Europe/Vienna" data-currency="EUR">
         <div class="flex items-center space-x-2 mb-4">
           <img src="https://flagcdn.com/w40/at.png" alt="AT flag">
           <span class="text-lg font-semibold">Vienna</span>
@@ -64,7 +64,7 @@
         <div class="conversion mt-2 text-sm font-medium text-green-500">—</div>
       </div>
       <!-- Krakow -->
-      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Europe/Warsaw" data-currency="PLN">
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" data-timezone="Europe/Warsaw" data-currency="PLN">
         <div class="flex items-center space-x-2 mb-4">
           <img src="https://flagcdn.com/w40/pl.png" alt="PL flag">
           <span class="text-lg font-semibold">Krakow</span>
@@ -74,7 +74,7 @@
         <div class="conversion mt-2 text-sm font-medium text-green-500">—</div>
       </div>
       <!-- Dabrowa Gornicza -->
-      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Europe/Warsaw" data-currency="PLN">
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" data-timezone="Europe/Warsaw" data-currency="PLN">
         <div class="flex items-center space-x-2 mb-4">
           <img src="https://flagcdn.com/w40/pl.png" alt="PL flag">
           <span class="text-lg font-semibold">Dabrowa Gornicza</span>
@@ -84,7 +84,7 @@
         <div class="conversion mt-2 text-sm font-medium text-green-500">—</div>
       </div>
       <!-- San Francisco -->
-      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="America/Los_Angeles" data-currency="USD">
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" data-timezone="America/Los_Angeles" data-currency="USD">
         <div class="flex items-center space-x-2 mb-4">
           <img src="https://flagcdn.com/w40/us.png" alt="US flag">
           <span class="text-lg font-semibold">San Francisco</span>
@@ -94,6 +94,7 @@
         <div class="conversion mt-2 text-sm font-medium text-green-500">—</div>
       </div>
     </div>
+  </div>
 
   <script>
     const container = document.getElementById('cardsContainer');
@@ -102,49 +103,59 @@
     const API_URL = 'https://api.exchangerate.host/latest';
     let rates = {};
 
-    // Initialize Sortable
-    new Sortable(container, { animation: 150, ghostClass: 'opacity-50', onEnd: () => { syncBaseOptions(); updateConversions(); } });
-    syncBaseOptions(); updateConversions(); updateClocks(); setInterval(updateClocks, 1000);
-
+    // Populate dropdown
     function syncBaseOptions() {
       baseSelect.innerHTML = '';
-      Array.from(container.children).forEach((card, i) => {
+      %%for(let i=0;i<container.children.length;i++){%%
+        const card = container.children[i];
         const ccy = card.dataset.currency;
         const opt = document.createElement('option'); opt.value = ccy; opt.textContent = ccy;
-        if (i === 0) opt.selected = true;
+        if(i===0) opt.selected=true;
         baseSelect.appendChild(opt);
-      });
+      %%}%%
     }
 
+    // Update clocks
     function updateClocks() {
-      Array.from(container.children).forEach(card => {
+      container.querySelectorAll('.card').forEach(card => {
         const tz = card.dataset.timezone;
-        const now = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
-        card.querySelector('.clock').textContent = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' });
-        card.querySelector('.date').textContent = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        const now = new Date(new Date().toLocaleString('en-US',{timeZone:tz}));
+        card.querySelector('.clock').textContent = now.toLocaleTimeString('en-US',{hour12:true,hour:'2-digit',minute:'2-digit'});
+        card.querySelector('.date').textContent = now.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
       });
     }
 
+    // Fetch rates
     async function fetchRates(base) {
       const symbols = Array.from(container.children).map(c => c.dataset.currency).join(',');
       const resp = await fetch(`${API_URL}?base=${base}&symbols=${symbols}`);
-      const data = await resp.json(); rates = data.rates || {};
+      const data = await resp.json(); rates=data.rates||{};
     }
 
+    // Update conversions
     async function updateConversions() {
       const base = baseSelect.value;
       const amt = parseFloat(amountInput.value);
-      if (isNaN(amt)) { Array.from(container.children).forEach(c => c.querySelector('.conversion').textContent = '—'); return; }
+      if(isNaN(amt)){
+        container.querySelectorAll('.conversion').forEach(c=>c.textContent='—');return;
+      }
       await fetchRates(base);
-      Array.from(container.children).forEach(card => {
-        const tgt = card.dataset.currency;
-        const rate = rates[tgt];
-        card.querySelector('.conversion').textContent = rate!=null?`${tgt}: ${(amt*rate).toFixed(2)}`:'—';
+      container.querySelectorAll('.card').forEach(card=>{
+        const tgt=card.dataset.currency;
+        const rate=rates[tgt];
+        card.querySelector('.conversion').textContent=rate!=null?`${tgt}: ${(amt*rate).toFixed(2)}`:'—';
       });
     }
 
-    baseSelect.addEventListener('change', updateConversions);
-    amountInput.addEventListener('input', updateConversions);
+    // Initialize Sortable
+    new Sortable(container,{animation:150,ghostClass:'opacity-50',onEnd:()=>{syncBaseOptions();updateConversions();}});
+
+    // Init
+    syncBaseOptions();
+    updateClocks(); setInterval(updateClocks,1000);
+    updateConversions();
+    baseSelect.addEventListener('change',updateConversions);
+    amountInput.addEventListener('input',updateConversions);
   </script>
 </body>
 </html>
