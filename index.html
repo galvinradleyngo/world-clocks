@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>World Clocks & Currency Converter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>body, html {height:100%; margin:0;}
+  /* Gradient background replacing image */
+  body {background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(200,230,255,0.8)), url('https://source.unsplash.com/1600x900/?world,map'); background-blend-mode: overlay; background-size: cover; background-position: center;}  </style>
+</head>
+<body class="relative">
+  <!-- Background & overlay -->
+  <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://source.unsplash.com/1600x900/?world,map');"></div>
+  <div class="absolute inset-0 bg-white bg-opacity-80"></div>
+
+  <div class="relative z-10 flex flex-col items-center min-h-screen p-6 space-y-6">
+    <!-- Controls -->
+    <div class="flex space-x-4">
+      <select id="baseCurrency" class="px-4 py-2 rounded-lg border border-gray-300"></select>
+      <input id="amount" type="number" placeholder="Amount" class="px-4 py-2 rounded-lg border border-gray-300 w-32">
+    </div>
+
+    <!-- Cards container -->
+    <div id="cardsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+      <!-- Manila -->
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Asia/Manila" data-currency="PHP">
+        <div class="flex items-center space-x-2 mb-4"><img src="https://flagcdn.com/w40/ph.png" alt="PH flag"><span class="text-lg font-semibold">Manila</span></div>
+        <div class="clock text-xl font-mono"></div>
+        <div class="date text-sm text-gray-600"></div>
+        <div class="conversion mt-2 text-sm font-medium text-green-500"></div>
+      </div>
+      <!-- Dubai -->
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Asia/Dubai" data-currency="AED">
+        <div class="flex items-center space-x-2 mb-4"><img src="https://flagcdn.com/w40/ae.png" alt="AE flag"><span class="text-lg font-semibold">Dubai</span></div>
+        <div class="clock text-xl font-mono"></div>
+        <div class="date text-sm text-gray-600"></div>
+        <div class="conversion mt-2 text-sm font-medium text-green-500"></div>
+      </div>
+      <!-- Vienna -->
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Europe/Vienna" data-currency="EUR">
+        <div class="flex items-center space-x-2 mb-4"><img src="https://flagcdn.com/w40/at.png" alt="AT flag"><span class="text-lg font-semibold">Vienna</span></div>
+        <div class="clock text-xl font-mono"></div>
+        <div class="date text-sm text-gray-600"></div>
+        <div class="conversion mt-2 text-sm font-medium text-green-500"></div>
+      </div>
+      <!-- Krakow -->
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Europe/Warsaw" data-currency="PLN">
+        <div class="flex items-center space-x-2 mb-4"><img src="https://flagcdn.com/w40/pl.png" alt="PL flag"><span class="text-lg font-semibold">Krakow</span></div>
+        <div class="clock text-xl font-mono"></div>
+        <div class="date text-sm text-gray-600"></div>
+        <div class="conversion mt-2 text-sm font-medium text-green-500"></div>
+      </div>
+      <!-- Dabrowa Gornicza -->
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Europe/Warsaw" data-currency="PLN">
+        <div class="flex items-center space-x-2 mb-4"><img src="https://flagcdn.com/w40/pl.png" alt="PL flag"><span class="text-lg font-semibold">Dabrowa Gornicza</span></div>
+        <div class="clock text-xl font-mono"></div>
+        <div class="date text-sm text-gray-600"></div>
+        <div class="conversion mt-2 text-sm font-medium text-green-500"></div>
+      </div>
+      <!-- San Francisco -->
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="America/Los_Angeles" data-currency="USD">
+        <div class="flex items-center space-x-2 mb-4"><img src="https://flagcdn.com/w40/us.png" alt="US flag"><span class="text-lg font-semibold">San Francisco</span></div>
+        <div class="clock text-xl font-mono"></div>
+        <div class="date text-sm text-gray-600"></div>
+        <div class="conversion mt-2 text-sm font-medium text-green-500"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+
+    // Initialize sortable
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js';
+    script.onload = () => new Sortable(container, { animation: 150, onEnd: () => { syncBaseOptions(); updateRatesAndConversions(); } });
+    document.body.appendChild(script);
+
+    // Sync dropdown
+    function syncBaseOptions() {
+      const baseSelect = document.getElementById('baseCurrency');
+      baseSelect.innerHTML = '';
+      Array.from(document.getElementById('cardsContainer').children).forEach((card,i) => {
+        const opt = document.createElement('option');
+        opt.value = card.dataset.currency;
+        opt.textContent = card.dataset.currency;
+        if(i===0) opt.selected = true;
+        baseSelect.appendChild(opt);
+      });
+    }
+
+    // Fetch/convert logic...
+    async function fetchUsdQuotes() {/* omitted */}
+    function getCrossRate(b,t){/* omitted */}
+    async function updateRatesAndConversions(){/* omitted */}
+    function updateClocks(){/* omitted */}
+    setInterval(updateClocks,1000);
+
+    // Init
+    syncBaseOptions(); updateRatesAndConversions();
+    document.getElementById('baseCurrency').addEventListener('change', updateRatesAndConversions);
+    document.getElementById('amount').addEventListener('input', updateRatesAndConversions);
+  </script>
+</body>
+</html>
