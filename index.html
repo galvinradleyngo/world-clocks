@@ -78,6 +78,21 @@
             font-size: 3rem; /* Larger flag emojis */
             margin-bottom: 0.5rem;
         }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
         @media (min-width: 768px) {
             .time-cards-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -107,7 +122,7 @@
                 </div>
 
                 <!-- Poland Card -->
-                <div id="poland-card" class="card" draggable="true" data-timezone="Europe/Warsaw" data-flag="🇵🇱">
+                <div id="poland-card" class="card" draggable="true" data-timezone="Europe/Warsaw" data-flag="🇵�">
                     <span class="flag-emoji">🇵🇱</span>
                     <h3 class="text-2xl font-bold text-gray-900 mb-2">Warsaw, Poland</h3>
                     <p class="text-lg text-gray-600 mb-1" id="poland-date"></p>
@@ -115,7 +130,7 @@
                 </div>
 
                 <!-- Dubai Card -->
-                <div id="dubai-card" class="card" draggable="true" data-timezone="Asia/Dubai" data-flag="🇦�">
+                <div id="dubai-card" class="card" draggable="true" data-timezone="Asia/Dubai" data-flag="🇦🇪">
                     <span class="flag-emoji">🇦🇪</span>
                     <h3 class="text-2xl font-bold text-gray-900 mb-2">Dubai, UAE</h3>
                     <p class="text-lg text-gray-600 mb-1" id="dubai-date"></p>
@@ -160,10 +175,16 @@
                         </select>
                     </div>
                 </div>
-                <button id="convertButton" class="currency-button w-full py-3 mb-6">Convert</button>
+                <button id="convertButton" class="currency-button w-full py-3 mb-6">Convert
+                    <span id="loadingSpinner" class="loading-spinner hidden"></span>
+                </button>
                 <div class="text-center">
                     <p class="text-xl text-gray-700 font-medium">Converted Amount:</p>
                     <p class="text-5xl font-extrabold text-green-600" id="convertedAmount">0.00</p>
+                    <p id="apiErrorWarning" class="text-sm text-red-500 mt-2 hidden">
+                        Could not fetch live exchange rates. Using approximate rates.
+                        This free API updates daily and does not require an API key.
+                    </p>
                 </div>
             </div>
         </section>
@@ -220,9 +241,24 @@
         }
 
         // --- Currency Converter Logic ---
-        // Hardcoded exchange rates relative to USD.
-        // In a real application, these would be fetched from an API.
-        const exchangeRates = {
+        // Using exchangerate-api.com's "open access" endpoint, which does not require an API key.
+        // Data updates once per day. Attribution is required for deployment.
+        const API_KEY = ""; // No API key needed for this specific endpoint
+
+        const amountInput = document.getElementById('amount');
+        const fromCurrencySelect = document.getElementById('fromCurrency');
+        const toCurrencySelect = document.getElementById('toCurrency');
+        const convertButton = document.getElementById('convertButton');
+        const convertedAmountDisplay = document.getElementById('convertedAmount');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const apiErrorWarning = document.getElementById('apiErrorWarning');
+
+
+        // Store exchange rates fetched from API
+        let liveExchangeRates = {};
+
+        // Hardcoded exchange rates as a fallback, relative to USD.
+        const fallbackExchangeRates = {
             'USD': {
                 'PHP': 58.75, // 1 USD = 58.75 PHP (example rate)
                 'PLN': 4.00,  // 1 USD = 4.00 PLN (example rate)
@@ -249,16 +285,48 @@
             }
         };
 
-        const amountInput = document.getElementById('amount');
-        const fromCurrencySelect = document.getElementById('fromCurrency');
-        const toCurrencySelect = document.getElementById('toCurrency');
-        const convertButton = document.getElementById('convertButton');
-        const convertedAmountDisplay = document.getElementById('convertedAmount');
+
+        /**
+         * Fetches exchange rates from the open.er-api.com API.
+         * This endpoint does not require an API key.
+         * @param {string} baseCurrency - The base currency for the exchange rates.
+         * @returns {Promise<object>} A promise that resolves with the conversion rates, or null on error.
+         */
+        async function fetchExchangeRates(baseCurrency) {
+            // Using open.er-api.com's 'latest' endpoint, which does not require an API key.
+            const apiUrl = `https://open.er-api.com/v6/latest/${baseCurrency}`;
+            console.log("Attempting to fetch from:", apiUrl); // Log the URL for debugging
+
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    const errorText = await response.text(); // Get raw response text for debugging
+                    console.error(`HTTP error! Status: ${response.status}, Response: ${errorText}`);
+                    apiErrorWarning.classList.remove('hidden'); // Show warning
+                    return null; // Indicate failure to fetch live rates
+                }
+                const data = await response.json();
+                console.log("API Response Data:", data); // Log the full API response
+
+                if (data.result === 'success') { // open.er-api.com uses 'result' property
+                    apiErrorWarning.classList.add('hidden'); // Hide warning if successful
+                    return data.rates; // open.er-api.com uses 'rates' property
+                } else {
+                    console.error(`API error: ${data['error-type'] || 'Unknown API error'}`);
+                    apiErrorWarning.classList.remove('hidden');
+                    return null;
+                }
+            } catch (error) {
+                console.error("Error fetching exchange rates:", error);
+                apiErrorWarning.classList.remove('hidden');
+                return null; // Indicate failure to fetch live rates
+            }
+        }
 
         /**
          * Performs the currency conversion based on input values and displays the result.
          */
-        function convertCurrency() {
+        async function convertCurrency() {
             const amount = parseFloat(amountInput.value);
             const fromCurrency = fromCurrencySelect.value;
             const toCurrency = toCurrencySelect.value;
@@ -268,14 +336,35 @@
                 return;
             }
 
-            // Get the rate from 'fromCurrency' to 'toCurrency'
-            const rate = exchangeRates[fromCurrency][toCurrency];
+            loadingSpinner.classList.remove('hidden'); // Show spinner
+            convertButton.disabled = true; // Disable button during conversion
 
-            if (rate) {
-                const convertedValue = amount * rate;
-                convertedAmountDisplay.textContent = convertedValue.toFixed(2); // Display with 2 decimal places
-            } else {
-                convertedAmountDisplay.textContent = 'Conversion Not Available';
+            let ratesToUse = fallbackExchangeRates; // Start with fallback rates
+
+            try {
+                const fetchedRates = await fetchExchangeRates(fromCurrency);
+                if (fetchedRates) {
+                    liveExchangeRates[fromCurrency] = fetchedRates; // Store live rates
+                    ratesToUse = liveExchangeRates; // Use live rates
+                } else {
+                    // If fetch failed, ratesToUse remains fallbackExchangeRates
+                    console.warn("Falling back to approximate hardcoded exchange rates.");
+                }
+
+                const rate = ratesToUse[fromCurrency][toCurrency];
+
+                if (rate) {
+                    const convertedValue = amount * rate;
+                    convertedAmountDisplay.textContent = convertedValue.toFixed(2); // Display with 2 decimal places
+                } else {
+                    convertedAmountDisplay.textContent = 'Conversion Not Available';
+                }
+            } catch (error) {
+                console.error("Conversion error:", error);
+                convertedAmountDisplay.textContent = 'Error during conversion.';
+            } finally {
+                loadingSpinner.classList.add('hidden'); // Hide spinner
+                convertButton.disabled = false; // Re-enable button
             }
         }
 
