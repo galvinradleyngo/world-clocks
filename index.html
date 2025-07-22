@@ -92,6 +92,61 @@
   </div>
 
   <script>
+    // Ensure DOM has loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      syncBaseOptions();
+      updateClocks();
+      updateConversions();
+    });
+
+    // Listeners
+    baseSelect.addEventListener('change', updateConversions);
+    amountInput.addEventListener('input', updateConversions);
+
+    // Draggable cards
+    new Sortable(container, { animation: 150, ghostClass: 'opacity-50', onEnd: () => { syncBaseOptions(); updateConversions(); } });
+
+    // Clock updater
+    function updateClocks() {
+      container.querySelectorAll('.card').forEach(card => {
+        const tz = card.dataset.timezone;
+        const now = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
+        card.querySelector('.clock').textContent = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' });
+        card.querySelector('.date').textContent = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      });
+    }
+    setInterval(updateClocks, 1000);
+
+    // Populate dropdown
+    function syncBaseOptions() {
+      baseSelect.innerHTML = '';
+      Array.from(container.children).forEach((card, i) => {
+        const opt = document.createElement('option');
+        opt.value = card.dataset.currency;
+        opt.textContent = card.dataset.currency;
+        if (i === 0) opt.selected = true;
+        baseSelect.appendChild(opt);
+      });
+    }
+
+    // Fetch & convert
+    async function updateConversions() {
+      const base = baseSelect.value;
+      const amt = parseFloat(amountInput.value);
+      const symbols = Array.from(container.children).map(c => c.dataset.currency).join(',');
+      if (isNaN(amt)) {
+        container.querySelectorAll('.conversion').forEach(el => el.textContent = '—');
+        return;
+      }
+      const resp = await fetch(`${API_URL}?base=${base}&symbols=${symbols}`);
+      const data = await resp.json();
+      container.querySelectorAll('.card').forEach(card => {
+        const rate = data.rates[card.dataset.currency];
+        card.querySelector('.conversion').textContent = rate != null
+          ? `${card.dataset.currency}: ${(amt * rate).toFixed(2)}`
+          : '—';
+      });
+    }
     const container = document.getElementById('cardsContainer');
     const baseSelect = document.getElementById('baseCurrency');
     const amountInput = document.getElementById('amount');
