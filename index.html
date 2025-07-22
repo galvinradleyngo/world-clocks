@@ -96,7 +96,8 @@
   const baseSelect  = document.getElementById('baseCurrency');
   const amountInput = document.getElementById('amount');
   // Use LIVE endpoint with access key
-  const API_URL     = 'https://api.exchangerate.host/live?access_key=8238d507f4faa49ace90e254ffa98e49&format=1';
+    // Use free latest endpoint (no key needed)
+  const API_URL     = 'https://api.exchangerate.host/latest';
 
   // 1) Enable drag-and-drop with animation
   new Sortable(container, {
@@ -139,7 +140,7 @@
     }
 
     // Fetch live rates with access key and base embedded in URL
-    const res  = await fetch(`${API_URL}&base=${base}`);
+    const res  = await fetch(`${API_URL}?base=${base}`);
     const data = await res.json();
     if (!data.rates) return console.error('No rates returned', data);
 
