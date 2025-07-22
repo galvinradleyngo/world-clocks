@@ -129,21 +129,29 @@
       setInterval(updateClocks, 1000);
 
       // Fetch rates and update conversions
+            // 4) Fetch & apply conversions, handling base==target
       async function updateConversions() {
         const base = baseSelect.value;
-        const amt = parseFloat(amountInput.value);
-        const symbols = Array.from(container.children).map(c => c.dataset.currency).join(',');
+        const amt  = parseFloat(amountInput.value);
         if (isNaN(amt)) {
           container.querySelectorAll('.conversion').forEach(el => el.textContent = '—');
           return;
         }
-        const resp = await fetch(`${API_URL}?base=${base}&symbols=${symbols}`);
+        const targets = Array.from(container.children)
+          .map(c => c.dataset.currency)
+          .filter(c => c !== base);
+        const resp = await fetch(`${API_URL}?base=${base}&symbols=${targets.join(',')}`);
         const data = await resp.json();
         container.querySelectorAll('.card').forEach(card => {
-          const rate = data.rates[card.dataset.currency];
-          card.querySelector('.conversion').textContent = rate != null
-            ? `${card.dataset.currency}: ${(amt * rate).toFixed(2)}`
-            : '—';
+          const tgt = card.dataset.currency;
+          let conv;
+          if (tgt === base) {
+            conv = `${tgt}: ${amt.toFixed(2)}`;
+          } else {
+            const rate = data.rates[tgt];
+            conv = rate != null ? `${tgt}: ${(amt * rate).toFixed(2)}` : '—';
+          }
+          card.querySelector('.conversion').textContent = conv;
         });
       }
 
