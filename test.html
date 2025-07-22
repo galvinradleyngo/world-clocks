@@ -193,7 +193,7 @@
                 </div>
 
                 <!-- San Francisco Card -->
-                <div id="sanfrancisco-card" class="card" draggable="true" data-timezone="America/Los_Angeles" data-flag="🇺�">
+                <div id="sanfrancisco-card" class="card" draggable="true" data-timezone="America/Los_Angeles" data-flag="🇺🇸">
                     <span class="flag-emoji">🇺🇸</span>
                     <h3 class="text-2xl font-bold text-gray-900 mb-2">San Francisco, USA</h3>
                     <p class="text-lg text-gray-600 mb-1" id="sanfrancisco-date"></p>
@@ -420,7 +420,8 @@
 
                 if (rate) {
                     const convertedValue = amount * rate;
-                    convertedAmountDisplay.textContent = convertedValue.toFixed(2); // Display with 2 decimal places
+                    // Prepend the 'toCurrency' symbol to the converted amount
+                    convertedAmountDisplay.textContent = `${toCurrency} ${convertedValue.toFixed(2)}`;
                 } else {
                     convertedAmountDisplay.textContent = 'Conversion Not Available';
                 }
@@ -442,6 +443,22 @@
         // --- Drag and Drop Logic ---
         const timezoneCardsContainer = document.getElementById('timezone-cards-container');
         let draggedItem = null;
+
+        // Add touch event listeners to prevent default behavior on mobile
+        timezoneCardsContainer.addEventListener('touchstart', (e) => {
+            // Check if the touch is on a draggable card
+            if (e.target.closest('.card')) {
+                e.preventDefault(); // Prevent default touch behavior (like scrolling, text selection)
+            }
+        }, { passive: false }); // Use { passive: false } to allow preventDefault()
+
+        timezoneCardsContainer.addEventListener('touchmove', (e) => {
+            // Check if a drag is active (draggedItem is not null)
+            if (draggedItem) {
+                e.preventDefault(); // Prevent default touch behavior (like scrolling) during a drag
+            }
+        }, { passive: false }); // Use { passive: false } to allow preventDefault()
+
 
         timezoneCardsContainer.addEventListener('dragstart', (e) => {
             draggedItem = e.target.closest('.card'); // Ensure we drag the whole card
@@ -515,4 +532,3 @@
     </script>
 </body>
 </html>
-�
