@@ -25,7 +25,7 @@
 
     <div id="cardsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
       <!-- Cards remain unchanged -->
-      <!-- Example Card -->
+      <!-- Manila -->
       <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Asia/Manila" data-currency="PHP">
         <div class="flex items-center space-x-2 mb-4">
           <img src="https://flagcdn.com/w40/ph.png" alt="PH flag" />
@@ -35,99 +35,66 @@
         <div class="date text-sm text-gray-600">Loading...</div>
         <div class="conversion mt-2 text-sm font-medium text-green-500">—</div>
       </div>
-      <!-- Repeat similar cards for Dubai, Vienna, Krakow, Dabrowa Gornicza, San Francisco -->
+      <!-- Dubai -->
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Asia/Dubai" data-currency="AED">
+        <div class="flex items-center space-x-2 mb-4">
+          <img src="https://flagcdn.com/w40/ae.png" alt="AE flag" />
+          <span class="text-lg font-semibold">Dubai</span>
+        </div>
+        <div class="clock text-xl font-mono">--:--</div>
+        <div class="date text-sm text-gray-600">Loading...</div>
+        <div class="conversion mt-2 text-sm font-medium text-green-500">—</div>
+      </div>
+      <!-- Add other cities similarly -->
     </div>
   </div>
 
   <script>
-  const container   = document.getElementById('cardsContainer');
-  const baseSelect  = document.getElementById('baseCurrency');
+  const container = document.getElementById('cardsContainer');
+  const baseSelect = document.getElementById('baseCurrency');
   const amountInput = document.getElementById('amount');
 
-  new Sortable(container, {
-    animation: 150,
-    ghostClass: 'opacity-50',
-    onEnd: () => { 
-      syncBaseOptions(); 
-      updateConversions(); 
-    }
-  });
+  new Sortable(container, { animation: 150, ghostClass: 'opacity-50' });
 
   function syncBaseOptions() {
     baseSelect.innerHTML = '';
-    const seenCurrencies = new Set();
-    const allCards = Array.from(container.children);
-    allCards.forEach(card => {
-      const ccy = card.dataset.currency;
-      if (!seenCurrencies.has(ccy)) {
-        const opt = document.createElement('option');
-        opt.value = ccy;
-        opt.textContent = ccy;
-        baseSelect.appendChild(opt);
-        seenCurrencies.add(ccy);
-      }
-    });
-    if (allCards.length > 0) baseSelect.value = allCards[0].dataset.currency;
-  }
-
-  function updateClocks() {
-    const now = new Date();
-    container.querySelectorAll('.card').forEach(card => {
-      const tz = card.dataset.timezone;
-      const timeOptions = { timeZone: tz, hour12: true, hour: '2-digit', minute:'2-digit' };
-      const dateOptions = { timeZone: tz, year: 'numeric', month: 'long', day: 'numeric' };
-      card.querySelector('.clock').textContent = new Intl.DateTimeFormat('en-US', timeOptions).format(now);
-      card.querySelector('.date').textContent = new Intl.DateTimeFormat('en-US', dateOptions).format(now);
+    const currencies = new Set();
+    container.querySelectorAll('.card').forEach(card => currencies.add(card.dataset.currency));
+    currencies.forEach(ccy => {
+      const opt = document.createElement('option');
+      opt.value = ccy;
+      opt.textContent = ccy;
+      baseSelect.appendChild(opt);
     });
   }
-  setInterval(updateClocks, 1000);
 
   async function updateConversions() {
-    const selectedBase = baseSelect.value;
-    const amt = parseFloat(amountInput.value);
-    if (isNaN(amt) || amt <= 0) {
-      container.querySelectorAll('.conversion').forEach(el => el.textContent = '—');
-      return;
-    }
+    const base = baseSelect.value;
+    const amount = parseFloat(amountInput.value);
+    if (isNaN(amount)) return;
 
-    const currencies = new Set();
+    const symbols = [...new Set(Array.from(container.children).map(card => card.dataset.currency).filter(ccy => ccy !== base))].join(',');
+    const response = await fetch(`https://api.exchangerate.host/latest?base=${base}&symbols=${symbols}`);
+    const data = await response.json();
+
     container.querySelectorAll('.card').forEach(card => {
-      const tgt = card.dataset.currency;
-      if (tgt !== selectedBase) currencies.add(tgt);
+      const currency = card.dataset.currency;
+      const conversionEl = card.querySelector('.conversion');
+      if (currency === base) {
+        conversionEl.textContent = amount.toLocaleString(undefined, { style: 'currency', currency });
+      } else {
+        const rate = data.rates[currency];
+        conversionEl.textContent = (amount * rate).toLocaleString(undefined, { style: 'currency', currency });
+      }
     });
-    const symbols = Array.from(currencies).join(',');
-
-    try {
-      const res = await fetch(`https://api.exchangerate.host/latest?base=${selectedBase}&symbols=${symbols}`);
-      if (!res.ok) throw new Error(`Network error: ${res.statusText}`);
-
-      const data = await res.json();
-      const rates = data.rates;
-
-      container.querySelectorAll('.card').forEach(card => {
-        const tgt = card.dataset.currency;
-        if (tgt === selectedBase) {
-          card.querySelector('.conversion').textContent = amt.toLocaleString('en-US', { style: 'currency', currency: tgt });
-        } else if (rates[tgt]) {
-          const convertedAmount = amt * rates[tgt];
-          card.querySelector('.conversion').textContent = convertedAmount.toLocaleString('en-US', { 
-            style: 'currency', currency: tgt, minimumFractionDigits: 2, maximumFractionDigits: 2 
-          });
-        } else {
-          card.querySelector('.conversion').textContent = 'N/A';
-        }
-      });
-    } catch (error) {
-      console.error('Conversion Error:', error);
-      container.querySelectorAll('.conversion').forEach(el => el.textContent = 'Error');
-    }
   }
+
+  syncBaseOptions();
+  updateConversions();
 
   baseSelect.addEventListener('change', updateConversions);
   amountInput.addEventListener('input', updateConversions);
-  syncBaseOptions();
-  updateClocks();
-  updateConversions();
+  setInterval(updateConversions, 60000); // refresh conversions every minute
   </script>
 </body>
 </html>
