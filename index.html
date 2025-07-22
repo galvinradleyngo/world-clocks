@@ -29,7 +29,7 @@
     <!-- Cards -->
     <div id="cardsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
       <!-- Manila -->
-      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" data-timezone="Asia/Manila" data-currency="PHP">
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Asia/Manila" data-currency="PHP">
         <div class="flex items-center space-x-2 mb-4">
           <img src="https://flagcdn.com/w40/ph.png" alt="PH flag" />
           <span class="text-lg font-semibold">Manila</span>
@@ -39,7 +39,7 @@
         <div class="conversion mt-2 text-sm font-medium text-green-500">—</div>
       </div>
       <!-- Dubai -->
-      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" data-timezone="Asia/Dubai" data-currency="AED">
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Asia/Dubai" data-currency="AED">
         <div class="flex items-center space-x-2 mb-4">
           <img src="https://flagcdn.com/w40/ae.png" alt="AE flag" />
           <span class="text-lg font-semibold">Dubai</span>
@@ -49,7 +49,7 @@
         <div class="conversion mt-2 text-sm font-medium text-green-500">—</div>
       </div>
       <!-- Vienna -->
-      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" data-timezone="Europe/Vienna" data-currency="EUR">
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Europe/Vienna" data-currency="EUR">
         <div class="flex items-center space-x-2 mb-4">
           <img src="https://flagcdn.com/w40/at.png" alt="AT flag" />
           <span class="text-lg font-semibold">Vienna</span>
@@ -59,7 +59,7 @@
         <div class="conversion mt-2 text-sm font-medium text-green-500">—</div>
       </div>
       <!-- Krakow -->
-      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" data-timezone="Europe/Warsaw" data-currency="PLN">
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Europe/Warsaw" data-currency="PLN">
         <div class="flex items-center space-x-2 mb-4">
           <img src="https://flagcdn.com/w40/pl.png" alt="PL flag" />
           <span class="text-lg font-semibold">Krakow</span>
@@ -69,7 +69,7 @@
         <div class="conversion mt-2 text-sm font-medium text-green-500">—</div>
       </div>
       <!-- Dąbrowa Górnicza -->
-      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" data-timezone="Europe/Warsaw" data-currency="PLN">
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="Europe/Warsaw" data-currency="PLN">
         <div class="flex items-center space-x-2 mb-4">
           <img src="https://flagcdn.com/w40/pl.png" alt="PL flag" />
           <span class="text-lg font-semibold">Dąbrowa Górnicza</span>
@@ -79,7 +79,7 @@
         <div class="conversion mt-2 text-sm font-medium text-green-500">—</div>
       </div>
       <!-- San Francisco -->
-      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" data-timezone="America/Los_Angeles" data-currency="USD">
+      <div class="card bg-white bg-opacity-80 backdrop-blur-lg rounded-3xl shadow-lg p-6 w-64 mx-auto" draggable="true" data-timezone="America/Los_Angeles" data-currency="USD">
         <div class="flex items-center space-x-2 mb-4">
           <img src="https://flagcdn.com/w40/us.png" alt="US flag" />
           <span class="text-lg font-semibold">San Francisco</span>
@@ -95,7 +95,8 @@
   const container   = document.getElementById('cardsContainer');
   const baseSelect  = document.getElementById('baseCurrency');
   const amountInput = document.getElementById('amount');
-  const API_URL     = 'https://api.exchangerate.host/latest';
+  // Use LIVE endpoint with access key
+  const API_URL     = 'https://api.exchangerate.host/live?access_key=8238d507f4faa49ace90e254ffa98e49&format=1';
 
   // 1) Enable drag-and-drop with animation
   new Sortable(container, {
@@ -137,8 +138,8 @@
       return;
     }
 
-    // Get rates for all currencies in the cards
-    const res  = await fetch(`${API_URL}?base=${base}`);
+    // Fetch live rates with access key and base embedded in URL
+    const res  = await fetch(`${API_URL}&base=${base}`);
     const data = await res.json();
     if (!data.rates) return console.error('No rates returned', data);
 
