@@ -92,60 +92,72 @@
   </div>
 
   <script>
-    const container   = document.getElementById('cardsContainer');
-    const baseSelect  = document.getElementById('baseCurrency');
-    const amountInput = document.getElementById('amount');
-    const API_URL     = 'https://api.exchangerate.host/latest';
+  const container   = document.getElementById('cardsContainer');
+  const baseSelect  = document.getElementById('baseCurrency');
+  const amountInput = document.getElementById('amount');
+  const API_URL     = 'https://api.exchangerate.host/latest';
 
-    // SortableJS
-    new Sortable(container, { animation: 150, ghostClass: 'opacity-50', onEnd: () => { syncBaseOptions(); updateConversions(); } });
+  // 1) Enable drag-and-drop with animation
+  new Sortable(container, {
+    animation: 150,
+    ghostClass: 'opacity-50',
+    onEnd: () => { syncBaseOptions(); updateConversions(); }
+  });
 
-    // Dropdown
-    function syncBaseOptions() {
-      baseSelect.innerHTML = '';
-      Array.from(container.children).forEach((card, i) => {
-        const c = card.dataset.currency;
-        const opt = document.createElement('option');
-        opt.value = c; opt.textContent = c;
-        if (i === 0) opt.selected = true;
-        baseSelect.appendChild(opt);
-      });
+  // 2) Populate the base-currency dropdown from cards order
+  function syncBaseOptions() {
+    baseSelect.innerHTML = '';
+    Array.from(container.children).forEach((card, i) => {
+      const ccy = card.dataset.currency;
+      const opt = document.createElement('option');
+      opt.value = ccy;
+      opt.textContent = ccy;
+      if (i === 0) opt.selected = true;
+      baseSelect.appendChild(opt);
+    });
+  }
+
+  // 3) Update clocks & dates every second
+  function updateClocks() {
+    container.querySelectorAll('.card').forEach(card => {
+      const tz = card.dataset.timezone;
+      const d  = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
+      card.querySelector('.clock').textContent = d.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute:'2-digit' });
+      card.querySelector('.date' ).textContent = d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    });
+  }
+  setInterval(updateClocks, 1000);
+
+  // 4) Fetch all rates for selected base and update conversions
+  async function updateConversions() {
+    const base = baseSelect.value;
+    const amt  = parseFloat(amountInput.value);
+    if (isNaN(amt)) {
+      container.querySelectorAll('.conversion').forEach(el => el.textContent = '—');
+      return;
     }
 
-    // Clocks
-    function updateClocks() {
-      container.querySelectorAll('.card').forEach(card => {
-        const tz = card.dataset.timezone;
-        const now = new Date().toLocaleString('en-US', { timeZone: tz });
-        const d   = new Date(now);
-        card.querySelector('.clock').textContent = d.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' });
-        card.querySelector('.date' ).textContent = d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-      });
-    }
-    setInterval(updateClocks, 1000);
+    // Get rates for all currencies in the cards
+    const res  = await fetch(`${API_URL}?base=${base}`);
+    const data = await res.json();
+    if (!data.rates) return console.error('No rates returned', data);
 
-    // Conversion
-    async function updateConversions() {
-      const base = baseSelect.value;
-      const amt  = parseFloat(amountInput.value);
-      const symbols = Array.from(container.children).map(c=>c.dataset.currency).join(',');
-      if (isNaN(amt)) {
-        container.querySelectorAll('.conversion').forEach(el => el.textContent = '—');
-        return;
-      }
-      const res  = await fetch(`${API_URL}?base=${base}&symbols=${symbols}`);
-      const data = await res.json();
-      container.querySelectorAll('.card').forEach(card => {
-        const t = card.dataset.currency;
-        const r = data.rates ? data.rates[t] : undefined;
-        card.querySelector('.conversion').textContent = r!=null ? `${t}: ${(amt*r).toFixed(2)}` : '—';
-      });
-    }
+    container.querySelectorAll('.card').forEach(card => {
+      const tgt = card.dataset.currency;
+      const rate = data.rates[tgt];
+      const text = rate != null
+        ? `${tgt}: ${(amt * rate).toFixed(2)}`
+        : '—';
+      card.querySelector('.conversion').textContent = text;
+    });
+  }
 
-    // Init
-    baseSelect.addEventListener('change', updateConversions);
-    amountInput.addEventListener('input', updateConversions);
-    syncBaseOptions(); updateClocks(); updateConversions();
-  </script>
+  // 5) Wire up events and initial load
+  baseSelect.addEventListener('change', updateConversions);
+  amountInput.addEventListener('input', updateConversions);
+  syncBaseOptions();
+  updateClocks();
+  updateConversions();
+</script>
 </body>
 </html>
